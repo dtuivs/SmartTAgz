@@ -24,11 +24,11 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
-    connect(ui->ticketview, &QTableWidget::cellChanged, this, &MainWindow::cellChanged);
-    connect(ui->ticketview, &QTableWidget::cellChanged, this, &MainWindow::update_totalPrice);
     loadFile(checkNotedTicket());
     ui->ticketview->resizeColumnsToContents();
 
+    connect(ui->ticketview, &QTableWidget::cellChanged, this, &MainWindow::cellChanged);
+    connect(ui->ticketview, &QTableWidget::cellChanged, this, &MainWindow::update_totalPrice);
 
     QRegularExpression input_pattern(R"(^\d{8}|\d{12}$)");
     QRegularExpressionValidator *input_check = new QRegularExpressionValidator(input_pattern, this);
@@ -110,44 +110,51 @@ void MainWindow::addtoTicket(QString lookup_code){
     }
 }
 
-// QImage MainWindow::generateBarcode(QString code){
+QImage MainWindow::generateBarcode(const QString &code){
 
 
-//     struct zint_symbol *symbol = ZBarcode_Create();
+    struct zint_symbol *symbol = ZBarcode_Create();
 
-//     if(!symbol){
-//         qWarning("Failed making symbols!");
-//         return QImage();
-//     }
-//     if(code.size() == 8){
-//         symbol->symbology = BARCODE_UPCE;
-//     }else if(code.size() == 12){
-//         symbol->symbology = BARCODE_UPCA;
-//     }
+    if(!symbol){
+        qWarning("Failed making symbols!");
+        return QImage();
+    }
+    if(code.size() == 8){
+        symbol->symbology = BARCODE_UPCE;
+        symbol->height = 250;
+        symbol->width = 230;
+        symbol->whitespace_width = 10;
+        symbol->border_width = 2;
+    }else if(code.size() == 12){
+        symbol->symbology = BARCODE_UPCA;
+        symbol->height = 250;
+        symbol->width = 350;
+        symbol->whitespace_width = 10;
+        symbol->border_width = 2;
+    }
 
-//     symbol->height = 200;
 
-//     QByteArray upcData = code.toUtf8();
-//     int error = ZBarcode_Encode_and_Buffer(symbol, (unsigned char *)upcData.constData(), 0, 0);
+    QByteArray codeData = code.toUtf8();
+    int error = ZBarcode_Encode_and_Buffer(symbol, (unsigned char *)codeData.constData(), 0, 90);
 
-//     if(error != 0){
-//         qWarning("failed to encode upc");
-//         ZBarcode_Delete(symbol);
-//         return QImage();
-//     }
+    if(error != 0){
+        qWarning("failed to encode upc");
+        ZBarcode_Delete(symbol);
+        return QImage();
+    }
 
-//     QImage barcodeImage(symbol->bitmap_width, symbol->bitmap_height, QImage::Format_ARGB32);
-//     barcodeImage.fill(Qt::white);
+    QImage barcodeImage(symbol->bitmap_width, symbol->bitmap_height, QImage::Format_ARGB32);
+    barcodeImage.fill(Qt::white);
 
-//     for(int y= 0; y < symbol->bitmap_height; ++y){
-//         for(int x=0;x<symbol->bitmap_width; ++x){
-//             barcodeImage.setPixelColor(x, y, symbol->bitmap[y*symbol->bitmap_width+x] ? Qt::black : Qt::white);
-//         }
-//     }
+    for(int y= 0; y < symbol->bitmap_height; ++y){
+        for(int x=0;x < symbol->bitmap_width; ++x){
+            barcodeImage.setPixelColor(x, y, symbol->bitmap[y*symbol->bitmap_width+x] ? Qt::black : Qt::white);
+        }
+    }
 
-//     ZBarcode_Delete(symbol);
-//     return barcodeImage;
-// }
+    ZBarcode_Delete(symbol);
+    return barcodeImage;
+}
 
 void MainWindow::cellChanged(int row, int column){
     qDebug() << "row: " + QString::number(row) + ", Column: " + QString::number(column);
@@ -222,7 +229,6 @@ void MainWindow::updateDatabase(QString upc, QString description, QString price)
 void MainWindow::autosave(){
     QString currentTicket = checkNotedTicket();
     saveFile(ui->ticketview, currentTicket);
-    //ui->ticketview->resizeColumnsToContents();
 }
 
 void MainWindow::update_totalPrice(){
@@ -386,7 +392,7 @@ void MainWindow::noteCurrentPath(const QString &filepath, const QString &destina
     QFile note(destinationPath);
 
     if(!note.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        qDebug() << "NOTECURRENTPATH: could not load note";
+        qDebug() << ": could not load note";
         return;
     }
 
@@ -700,5 +706,21 @@ void MainWindow::on_addtoticket_button_clicked()
             addtoTicket(upc);
         }
     }
+}
+
+
+void MainWindow::on_barcode_button_clicked()
+{
+    QString incoming;
+    QList<QTableWidgetItem *>  selectItems = ui->ticketview->selectedItems();
+    if(selectItems.isEmpty()){
+        incoming = ui->ticketview->item(0,0)->text();
+    }else{
+        int row = selectItems[0]->row();
+        incoming = ui->ticketview->item(row, 0)->text();
+    }
+    QPixmap image = QPixmap::fromImage(generateBarcode(incoming));
+    QPixmap shrunk = image.scaled(ui->app_pageview->size()/3, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    ui->barcode_view->setPixmap(shrunk);
 }
 

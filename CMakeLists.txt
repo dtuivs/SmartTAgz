@@ -12,7 +12,17 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets LinguistTools)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets LinguistTools)
 
+find_path(ZINT_INCLUDE_DIR zint.h PATHS /usr/local/Cellar/zint/include)
+find_library(ZINT_LIBRARY NAMES zint PATHS /usr/local/Cellar/zint/bin /usr/local/Cellar/zint/lib)
+
+if(NOT ZINT_INCLUDE_DIR OR NOT ZINT_LIBRARY)
+    message(FATAL_ERROR "Zint Library not found")
+endif()
+
+include_directories(${ZINT_INCLUDE_DIR})
+
 set(TS_FILES Register_App_en_US.ts)
+set(LIBS ${ZINT_LIBRARY})
 
 set(PROJECT_SOURCES
         main.cpp
@@ -49,7 +59,7 @@ else()
     qt5_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 endif()
 
-target_link_libraries(Register_App PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
+target_link_libraries(Register_App PRIVATE Qt${QT_VERSION_MAJOR}::Widgets ${LIBS} )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an
@@ -75,3 +85,6 @@ install(TARGETS Register_App
 if(QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(Register_App)
 endif()
+
+#add_subdirectory(SCodes/src)
+#target_link_libraries(${PROJECT_NAME} PUBLIC SCodes)

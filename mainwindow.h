@@ -79,6 +79,8 @@ private slots:
 
     void on_addtoticket_button_clicked();
 
+    void on_barcode_button_clicked();
+
 private:
     Ui::MainWindow *ui;
 
@@ -86,7 +88,7 @@ private:
 
     void cellChanged(int row, int column);
 
-    //QImage generateBarcode(QString upc);
+    QImage generateBarcode(const QString &code);
 
     void updateDatabase(QString upc, QString description, QString price);
 
