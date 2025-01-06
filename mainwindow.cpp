@@ -24,21 +24,33 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
-    loadFile(checkNotedTicket());
-    ui->ticketview->resizeColumnsToContents();
-
+    connect(ui->actionSales_Tax, &QAction::triggered, this, &MainWindow::on_actionSales_Tax_clicked);
+    connect(ui->actionLocate_Database, &QAction::triggered, this, &MainWindow::on_actionLocate_Database_clicked);
     connect(ui->ticketview, &QTableWidget::cellChanged, this, &MainWindow::cellChanged);
     connect(ui->ticketview, &QTableWidget::cellChanged, this, &MainWindow::update_totalPrice);
 
     QRegularExpression input_pattern(R"(^\d{8}|\d{12}$)");
     QRegularExpressionValidator *input_check = new QRegularExpressionValidator(input_pattern, this);
     ui->code_inputBox->setValidator(input_check);
+
+    ui->enter_button->setDisabled(true);
+
+    loadFile(checkNotedTicket());
+    ui->ticketview->resizeColumnsToContents();
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
 }
+
+
+QRegularExpression istwelveLong_digits(R"(^\d{12}$)");
+QRegularExpression isEightLong_digits(R"(^0\d{7}$)");
+QRegularExpression isPrice_one(R"(^\$\d+(\.\d{1,2})?$)");
+QRegularExpression isPrice_two(R"(^price\:\d+(\.\d{1,2})?$)");
+QRegularExpression isQty(R"(^x\d+$)");
+
 
 void MainWindow::addtoTicket(QString lookup_code){
 
@@ -79,6 +91,7 @@ void MainWindow::addtoTicket(QString lookup_code){
                 QString upc = splitupclabel[0].trimmed();
                 QTableWidgetItem* upctext = new QTableWidgetItem(upc);
                 ui->ticketview->setItem(row, 0, upctext);
+                ui->ticketview->item(row, 0)->setFlags(ui->ticketview->item(row, 0)->flags() & ~Qt::ItemIsEditable);
 
                 qDebug() << "upc added: "  + upc;
                 QStringList parts = splitupclabel[1].trimmed().split(" #)- ");
@@ -157,13 +170,13 @@ QImage MainWindow::generateBarcode(const QString &code){
 }
 
 void MainWindow::cellChanged(int row, int column){
-    qDebug() << "row: " + QString::number(row) + ", Column: " + QString::number(column);
+    qDebug() << "Cell Changed -- row: " + QString::number(row) + ", Column: " + QString::number(column);
     if(column == 2){
         //update_totalPrice();
     }else if (column == 1 || column == 3){
         qDebug() << row;
         if(column==3){
-            //update_totalPrice();
+        //    update_totalPrice();
         }
         qDebug() << ui->ticketview->item(row, 1)->text();
         if(ui->ticketview->item(row, 1)->text() != nullptr || ui->ticketview->item(row, 1)->text() != "label"){
@@ -233,8 +246,9 @@ void MainWindow::autosave(){
 
 void MainWindow::update_totalPrice(){
     float total = 0.0;
-    for(int row; row < ui->ticketview->rowCount(); ++row){
-        bool converted;
+    for(int row = 0; row < ui->ticketview->rowCount(); ++row){
+        //qDebug() << "checking row: " + QString::number(row);
+        bool converted = false;
         QString table_qty;
         float qty;
         if (ui->ticketview->item(row, 2) != nullptr){
@@ -245,10 +259,12 @@ void MainWindow::update_totalPrice(){
             }else{
                 qty = table_qty.toFloat();
             }
+        }else {
+            qDebug() << "CHeck price: nullptr";
         }
         if(ui->ticketview->item(row, 3) != nullptr){
             QString table_price = ui->ticketview->item(row, 3)->text();
-            qDebug() << "Price:" + table_price;
+            //qDebug() << "Price:" + table_price;
             float plusthis;
             if(table_price == nullptr){
                 plusthis = 0.0;
@@ -262,7 +278,13 @@ void MainWindow::update_totalPrice(){
         }
     }
     //qDebug() << total;
+    float tax = checkNotedTax().toFloat();
+    float tax_cut = tax/100;
+    tax_cut = tax_cut*total;
+    total = total + tax_cut;
     if(ui->price_label){
+        QString taxcut_label =  "+$"+QString::number(tax_cut, 'f', 2)+"("+QString::number(tax, 'f', 2)+"%)";
+        ui->tax_label->setText(taxcut_label);
         QString total_label = "Total: $" + QString::number(total, 'f', 2);
         ui->price_label->setText(total_label);
 
@@ -272,11 +294,9 @@ void MainWindow::update_totalPrice(){
 }
 
 QString MainWindow::processPrice(const QString &price){
-    QRegularExpression tag_pattern(R"(^\$\d+(\.\d{1,2})?$)");
-    QRegularExpression tag_pattern2(R"(^price\:\d+(\.\d{1,2})?$)");
-    if(tag_pattern.match(price).hasMatch()){
+    if(isPrice_one.match(price).hasMatch()){
         return price.mid(1);
-    }else if(tag_pattern2.match(price).hasMatch()){
+    }else if(isPrice_two.match(price).hasMatch()){
         return price.mid(6);
     }else {
         return QString();
@@ -284,12 +304,31 @@ QString MainWindow::processPrice(const QString &price){
 }
 
 QString MainWindow::processQty(const QString &quantity){
-    QRegularExpression tag_pattern(R"(^x\d+$)");
-    if(tag_pattern.match(quantity).hasMatch()){
+    if(isQty.match(quantity).hasMatch()){
         return quantity.mid(1);
     }else{
         return QString();
     }
+}
+
+QString MainWindow::checkNotedTax(){
+    QString notelocation = "tax.txt";
+
+    QFile note(notelocation);
+    if(!note.exists()){
+        qDebug() << "tax.txt not found";
+        return "";
+    }
+    if(!note.open(QIODevice::ReadOnly | QIODevice::Text)){
+        qDebug() << "coudln't load tax.txt";
+        return "";
+    }
+
+    QTextStream in(&note);
+    QString currentTax = in.readLine();
+    note.close();
+
+    return currentTax;
 }
 
 QString MainWindow::checkNotedTicket(){
@@ -424,15 +463,65 @@ void MainWindow::searchDatabase(const QString &SearchText, const QString &databa
     ui->foundView->resizeColumnsToContents();
 }
 
+QString MainWindow::expandtoUPCA(const QString &upc){
+    QString base = upc.length() == 8 ? upc.mid(1, 6) : upc;
+    QString checksum = upc.length() == 8 ? upc[7] : '0';
 
-void MainWindow::code_input_check(){
+    if(base.length() != 6){
+        return "-1";
+    }
 
+    QChar lastDigit = base[5];
+    QString expanded = "";
+
+    if(lastDigit == '0' || lastDigit == '1' || lastDigit == '2'){
+        expanded = base.left(2) + lastDigit + "0000"  + base.mid(2, 3);
+    }else if( lastDigit == '3'){
+        expanded = base.left(3) + "00000" + base.mid(3, 2);
+    } else if( lastDigit == '4'){
+        expanded = base.left(4) + "00000" + base[4];
+    }else{
+        expanded = base.left(5)+ "0000" + lastDigit;
+    }
+    return "0" + expanded + checksum;
+}
+
+
+bool MainWindow::code_input_check(const QString &input){
+
+    QString code = input;
+    QRegularExpressionMatch twelveLong = istwelveLong_digits.match(code);
+    QRegularExpressionMatch eightLong = isEightLong_digits.match(code);
+
+    qDebug() << code + " : " + QString::number(code.size());
+    if(!eightLong.hasMatch()){
+        if(!twelveLong.hasMatch()){
+            return false;
+        }
+    }else{
+        qDebug() << expandtoUPCA(code);
+        code = expandtoUPCA(code);
+    }
+
+    int sum = 0;
+    for(int i = 0; i<11;++i){
+        int digit = code[i].digitValue();
+        sum += (i%2 == 0) ? digit *  3 : digit;
+    }
+    int last_digit = code[11].digitValue();
+    int  checksum = (10 - (sum %  10)) % 10;
+    qDebug() << QString::number(checksum) + " ? " + QString::number(last_digit);
+    if(checksum == last_digit){
+        return true;
+    } else {
+        return false;
+    }
 
 }
 
 void MainWindow::on_code_inputBox_textChanged(const QString &arg1)
 {
-    code_input_check();
+    ui->enter_button->setDisabled(!code_input_check(arg1));
 }
 
 
@@ -584,12 +673,7 @@ void MainWindow::on_backspace_button_clicked()
 
 void MainWindow::on_enter_button_clicked()
 {
-    code_input_check();
-    bool validCode = ui->code_inputBox->validator();
-    qDebug() << validCode;
-    if(validCode){
-        on_code_inputBox_returnPressed();
-    }
+    on_code_inputBox_returnPressed();
 }
 
 QString MainWindow::generateTimestamp(){
@@ -643,7 +727,7 @@ void MainWindow::on_delete_button_clicked()
             }
         }
     }
-    ui->ticketview->cellChanged(0, 2);
+    emit ui->ticketview->cellChanged(0, 2);
     autosave();
 }
 
@@ -722,5 +806,63 @@ void MainWindow::on_barcode_button_clicked()
     QPixmap image = QPixmap::fromImage(generateBarcode(incoming));
     QPixmap shrunk = image.scaled(ui->app_pageview->size()/3, Qt::KeepAspectRatio, Qt::SmoothTransformation);
     ui->barcode_view->setPixmap(shrunk);
+}
+
+
+void MainWindow::on_priceChange_button_clicked()
+{
+    const QString input = ui->code_inputBox->text();
+
+    QList<QTableWidgetItem *> selectItems = ui->ticketview->selectedItems();
+    if(selectItems.size() != 1){
+
+    }else{
+        int row = selectItems[0]->row();
+        ui->ticketview->item(row, 3)->setText(input);
+        ui->code_inputBox->setText("");
+        ui->ticketview->resizeColumnsToContents();
+    }
+}
+
+
+void MainWindow::on_qtyChange_button_clicked()
+{
+    const QString input = ui->code_inputBox->text();
+
+    QList<QTableWidgetItem *> selectItems = ui->ticketview->selectedItems();
+    if(selectItems.size() != 1){
+
+    }else{
+        int row = selectItems[0]->row();
+        ui->ticketview->item(row, 2)->setText(input);
+        ui->code_inputBox->setText("");
+        ui->ticketview->resizeColumnsToContents();
+    }
+}
+
+void MainWindow::on_actionSales_Tax_clicked(){
+    qDebug() << "adjust tax clicked";
+    const QString input = ui->code_inputBox->text();
+
+    QString filelocation = "tax.txt";
+    QFile file(filelocation);
+
+    if(!file.open(QIODevice::WriteOnly | QIODevice::Text)){
+        qDebug() << "Coudln't find tax";
+    }
+
+    QTextStream output(&file);
+
+    output << input;
+    file.close();
+    qDebug() << "Tax updated";
+
+    ui->code_inputBox->setText("");
+    ui->ticketview->resizeColumnsToContents();
+    emit ui->ticketview->cellChanged(0, 2);
+}
+
+void MainWindow::on_actionLocate_Database_clicked(){
+
 }
 

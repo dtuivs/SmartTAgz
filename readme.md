@@ -1,8 +1,14 @@
-SmartTAgz 
+SmartTAgz (Register App)
 ---
-this... I don't know. Would probably be better for an portable device. 
+
+So this was original built in iOS's Shortcuts. Decided to give it a shot with a desktop evironment. Intending on compiling for the raspberry pi with the Touch diplay. 
+
+Currently a work in progress...
 
 
-...working on it. 
+This Last update:
 
-12/25/24
+- fixed the UPC Validation
+- sales taxes actually functions (enter % value in input box, then click sales tax in the dropdown menu)
+
+Jan 6th 2025

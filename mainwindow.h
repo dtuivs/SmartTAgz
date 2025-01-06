@@ -81,6 +81,10 @@ private slots:
 
     void on_barcode_button_clicked();
 
+    void on_priceChange_button_clicked();
+
+    void on_qtyChange_button_clicked();
+
 private:
     Ui::MainWindow *ui;
 
@@ -92,13 +96,15 @@ private:
 
     void updateDatabase(QString upc, QString description, QString price);
 
-    void code_input_check();
+    bool code_input_check(const QString &input);
 
     QString processPrice(const QString &price);
 
     QString generateTimestamp();
 
     QString processQty(const QString &quantity);
+
+    QString checkNotedTax();
 
     QString checkNotedTicket();
 
@@ -111,6 +117,12 @@ private:
     void searchDatabase(const QString &searchText, const QString &databasePath);
 
     void autosave();
+
+    void on_actionSales_Tax_clicked();
+
+    void on_actionLocate_Database_clicked();
+
+    QString expandtoUPCA(const QString &upc);
 
 };
 #endif // MAINWINDOW_H
