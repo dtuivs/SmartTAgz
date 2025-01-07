@@ -104,6 +104,10 @@ private:
 
     QString processQty(const QString &quantity);
 
+    QString checkNotedTicketFolder();
+
+    QString checkNotedDatabase();
+
     QString checkNotedTax();
 
     QString checkNotedTicket();
@@ -121,6 +125,8 @@ private:
     void on_actionSales_Tax_clicked();
 
     void on_actionLocate_Database_clicked();
+
+    void on_actionTicketFolder_clicked();
 
     QString expandtoUPCA(const QString &upc);
 

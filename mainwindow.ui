@@ -706,6 +706,7 @@
     </property>
     <addaction name="actionSales_Tax"/>
     <addaction name="actionLocate_Database"/>
+    <addaction name="actionTickets_Folder"/>
    </widget>
    <addaction name="menuAdjust_Tax"/>
   </widget>
@@ -717,6 +718,11 @@
   <action name="actionLocate_Database">
    <property name="text">
     <string>Locate Database</string>
+   </property>
+  </action>
+  <action name="actionTickets_Folder">
+   <property name="text">
+    <string>Tickets Folder</string>
    </property>
   </action>
  </widget>
