@@ -122,6 +122,8 @@ private:
 
     void autosave();
 
+    void digit_clicked(QString digit);
+
     void on_actionSales_Tax_clicked();
 
     void on_actionLocate_Database_clicked();

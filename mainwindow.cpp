@@ -36,8 +36,9 @@ MainWindow::MainWindow(QWidget *parent)
     ui->code_inputBox->setValidator(input_check);
 
     ui->enter_button->setDisabled(true);
-
+    ui->ticketview->setIconSize(QSize(300, 300));
     ui->ticketview->resizeColumnsToContents();
+    checkNotedDatabase();
 }
 
 MainWindow::~MainWindow()
@@ -99,13 +100,13 @@ void MainWindow::addtoTicket(QString lookup_code){
                 ui->ticketview->setItem(row, 0, upctext);
                 ui->ticketview->item(row, 0)->setFlags(ui->ticketview->item(row, 0)->flags() & ~Qt::ItemIsEditable);
 
-                qDebug() << "upc added: "  + upc;
+                //qDebug() << "upc added: "  + upc;
                 QStringList parts = splitupclabel[1].trimmed().split(" #)- ");
 
                 QString label = parts[0].trimmed();
                 QTableWidgetItem* labeltext = new QTableWidgetItem(label);
                 ui->ticketview->setItem(row, 1, labeltext);
-                qDebug() << "label added: " + label;
+                //qDebug() << "label added: " + label;
                 QTableWidgetItem* view_qty = new QTableWidgetItem("1");
                 ui->ticketview->setItem(row, 2, view_qty);
 
@@ -114,9 +115,57 @@ void MainWindow::addtoTicket(QString lookup_code){
                     QTableWidgetItem* pricetext = new  QTableWidgetItem(processPrice(price));
                     ui->ticketview->setItem(row, 3, pricetext);
                 }
-
+                //generate barcode and add to fourth last column
+                QTableWidgetItem *barcodeSpace = new QTableWidgetItem();
+                QPixmap barcode = QPixmap::fromImage(generateBarcode(upc));
+                QPixmap sizedBarcode = barcode.scaled(ui->app_pageview->size()/3, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+                barcodeSpace->setIcon(QIcon(sizedBarcode));
+                ui->ticketview->setItem(row, 4, barcodeSpace);
             }
         }
+
+        QRegularExpressionMatch eightLong = isEightLong_digits.match(lookup_code);
+        if(eightLong.hasMatch() && foundcount == 0){
+            QString expanded_code = expandtoUPCA(lookup_code);
+            while(!database.atEnd()){
+                QString line = database.readLine();
+                if(line.startsWith(expanded_code)){
+                    foundcount++;
+                    int row = ui->ticketview->rowCount();
+                    ui->ticketview->insertRow(row);
+
+                    QStringList splitupclabel = line.split(" - ");
+                    QString upc = splitupclabel[0].trimmed();
+                    QTableWidgetItem* upctext = new QTableWidgetItem(upc);
+                    ui->ticketview->setItem(row, 0, upctext);
+                    ui->ticketview->item(row, 0)->setFlags(ui->ticketview->item(row, 0)->flags() & ~Qt::ItemIsEditable);
+
+                    //qDebug() << "upc added: "  + upc;
+                    QStringList parts = splitupclabel[1].trimmed().split(" #)- ");
+
+                    QString label = parts[0].trimmed();
+                    QTableWidgetItem* labeltext = new QTableWidgetItem(label);
+                    ui->ticketview->setItem(row, 1, labeltext);
+                    //qDebug() << "label added: " + label;
+                    QTableWidgetItem* view_qty = new QTableWidgetItem("1");
+                    ui->ticketview->setItem(row, 2, view_qty);
+
+                    if(parts.size() > 1){
+                        QString price = parts[1].trimmed();
+                        QTableWidgetItem* pricetext = new  QTableWidgetItem(processPrice(price));
+                        ui->ticketview->setItem(row, 3, pricetext);
+                    }
+                    //generate barcode and add to fourth last column
+                    QTableWidgetItem *barcodeSpace = new QTableWidgetItem();
+                    QPixmap barcode = QPixmap::fromImage(generateBarcode(upc));
+                    QPixmap sizedBarcode = barcode.scaled(ui->app_pageview->size()/3, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+                    barcodeSpace->setIcon(QIcon(sizedBarcode));
+                    ui->ticketview->setItem(row, 4, barcodeSpace);
+                }
+            }
+
+        }
+
         //If not in database add empty row
         if(foundcount == 0){
             int row = ui->ticketview->rowCount();
@@ -125,7 +174,15 @@ void MainWindow::addtoTicket(QString lookup_code){
             ui->ticketview->setItem(row, 0, upc);
             QTableWidgetItem* view_qty = new QTableWidgetItem("1");
             ui->ticketview->setItem(row, 2, view_qty);
+
+            //generate barcode and add to fourth last column
+            QTableWidgetItem *barcodeSpace = new QTableWidgetItem();
+            QPixmap barcode = QPixmap::fromImage(generateBarcode(lookup_code));
+            QPixmap sizedBarcode = barcode.scaled(ui->app_pageview->size()/3, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+            barcodeSpace->setIcon(QIcon(sizedBarcode));
+            ui->ticketview->setItem(row, 4, barcodeSpace);
         }
+        databaseFile.close();
     }
 }
 
@@ -154,7 +211,7 @@ QImage MainWindow::generateBarcode(const QString &code){
 
 
     QByteArray codeData = code.toUtf8();
-    int error = ZBarcode_Encode_and_Buffer(symbol, (unsigned char *)codeData.constData(), 0, 90);
+    int error = ZBarcode_Encode_and_Buffer(symbol, (unsigned char *)codeData.constData(), 0, 0);
 
     if(error != 0){
         qWarning("failed to encode upc");
@@ -176,7 +233,7 @@ QImage MainWindow::generateBarcode(const QString &code){
 }
 
 void MainWindow::cellChanged(int row, int column){
-    qDebug() << "Cell Changed -- row: " + QString::number(row) + ", Column: " + QString::number(column);
+    //qDebug() << "Cell Changed -- row: " + QString::number(row) + ", Column: " + QString::number(column);
     if(column == 2){
         //update_totalPrice();
     }else if (column == 1 || column == 3){
@@ -184,7 +241,7 @@ void MainWindow::cellChanged(int row, int column){
         if(column==3){
         //    update_totalPrice();
         }
-        qDebug() << ui->ticketview->item(row, 1)->text();
+        //qDebug() << ui->ticketview->item(row, 1)->text();
         if(ui->ticketview->item(row, 1)->text() != nullptr || ui->ticketview->item(row, 1)->text() != "label"){
             QString description = ui->ticketview->item(row, 1)->text();
             QString upc = ui->ticketview->item(row, 0) ? ui->ticketview->item(row, 0)->text() : "noupc";
@@ -268,29 +325,25 @@ void MainWindow::update_totalPrice(){
         //qDebug() << "checking row: " + QString::number(row);
         bool converted = false;
         QString table_qty;
-        float qty;
+        float qty = 1;
         if (ui->ticketview->item(row, 2) != nullptr){                       //checking QTY if empty
             table_qty = ui->ticketview->item(row, 2)->text();
             //qDebug() << "Qty:"+table_qty;
-            if(table_qty == nullptr){
-                qty = 1;
-            }else{
+            if(table_qty != nullptr){
                 qty = table_qty.toFloat();
             }
         }else {
-            qDebug() << "CHeck price: nullptr";
+            //qDebug() << "CHeck price: nullptr";
         }
         if(ui->ticketview->item(row, 3) != nullptr){                        //checking price if empty
             QString table_price = ui->ticketview->item(row, 3)->text();
             //qDebug() << "Price:" + table_price;
-            float plusthis;
-            if(table_price == nullptr){
-                plusthis = 0.0;
-            }else{
+            float plusthis = 0.0;
+            if(table_price != nullptr){
                 plusthis = table_price.toFloat(&converted);
             }
             if(converted){
-                plusthis = plusthis * qty;
+                plusthis *= qty;
                 total = total + plusthis;
             }
         }
@@ -306,7 +359,7 @@ void MainWindow::update_totalPrice(){
         QString total_label = "Total: $" + QString::number(total, 'f', 2);
         ui->price_label->setText(total_label);
 
-        qDebug() << total_label;
+        //qDebug() << total_label;
     }
 
 }
@@ -364,6 +417,7 @@ QString MainWindow::checkNotedDatabase(){
     QTextStream in(&note);
     QString databasePath = in.readLine();
     note.close();
+    ui->databaseLocation_label->setText(databasePath);
     return databasePath;
 }
 
@@ -431,31 +485,42 @@ void MainWindow::loadFile(QString filename){
 
 
         QString upc = parts[0].trimmed();
-        QTableWidgetItem* item_upc = new QTableWidgetItem(upc);
-        ui->ticketview->setItem(row, 0, item_upc);
-        item_upc->setFlags(item_upc->flags() & ~Qt::ItemIsEditable);
+        if(upc == "" || upc == nullptr){
 
-        if(parts.size() >= 2){
+        }else{
+            QTableWidgetItem* item_upc = new QTableWidgetItem(upc);
+            ui->ticketview->setItem(row, 0, item_upc);
+            item_upc->setFlags(item_upc->flags() & ~Qt::ItemIsEditable);
 
-            QString label = parts[1].trimmed();
-            qDebug() << label;
-            QTableWidgetItem* item_label = new QTableWidgetItem(label);
-            ui->ticketview->setItem(row, 1, item_label);
-            //item_label->setFlags(item_label->flags() & ~Qt::ItemIsEditable);
-        }
-        if(parts.size()>=3){
-            QString quantity = parts[2].trimmed();
-            QString qtyProcessed = processQty(quantity);
-            qDebug() << quantity;
-            QTableWidgetItem* item_qty = new QTableWidgetItem(qtyProcessed);
-            ui->ticketview->setItem(row, 2, item_qty);
-        }
-        if(parts.size() >= 4){
-            QString price = parts[3].trimmed();
-            QString priceProcessed = processPrice(price);
-            qDebug() << priceProcessed;
-            QTableWidgetItem* item_price = new QTableWidgetItem(priceProcessed);
-            ui->ticketview->setItem(row, 3, item_price);
+            if(parts.size() >= 2){
+
+                QString label = parts[1].trimmed();
+                //qDebug() << label;
+                QTableWidgetItem* item_label = new QTableWidgetItem(label);
+                ui->ticketview->setItem(row, 1, item_label);
+                //item_label->setFlags(item_label->flags() & ~Qt::ItemIsEditable);
+            }
+            if(parts.size()>=3){
+                QString quantity = parts[2].trimmed();
+                QString qtyProcessed = processQty(quantity);
+                //qDebug() << quantity;
+                QTableWidgetItem* item_qty = new QTableWidgetItem(qtyProcessed);
+                ui->ticketview->setItem(row, 2, item_qty);
+            }
+            if(parts.size() >= 4){
+                QString price = parts[3].trimmed();
+                QString priceProcessed = processPrice(price);
+                //qDebug() << priceProcessed;
+                QTableWidgetItem* item_price = new QTableWidgetItem(priceProcessed);
+                ui->ticketview->setItem(row, 3, item_price);
+            }
+            //generate barcode and add to fourth last column
+            QTableWidgetItem *barcodeSpace = new QTableWidgetItem();
+            QPixmap barcode = QPixmap::fromImage(generateBarcode(upc));
+            QPixmap sizedBarcode = barcode.scaled(QSize(300, 300), Qt::KeepAspectRatio, Qt::SmoothTransformation);
+            barcodeSpace->setIcon(QIcon(sizedBarcode));
+            ui->ticketview->setItem(row, 4, barcodeSpace);
+            barcodeSpace->setFlags(item_upc->flags() & ~Qt::ItemIsEditable);
         }
     }
 
@@ -482,7 +547,7 @@ void MainWindow::saveFile(QTableWidget *given_table, const QString &filePath){
         }else {
             formatted_line = QString("%1 #)- %2 #)- %3").arg(upc, label, qty);
         }
-        qDebug() << formatted_line;
+        //qDebug() << formatted_line;
         output << formatted_line << "\n";
     }
     ticket_filePath.close();
@@ -500,7 +565,7 @@ void MainWindow::noteCurrentPath(const QString &filepath, const QString &destina
     QTextStream output(&note);
     output << filepath;
     note.close();
-    qDebug() << "current ticket noted.";
+    //qDebug() << "current ticket noted.";
 }
 
 void MainWindow::searchDatabase(const QString &SearchText, const QString &databasePath){
@@ -555,13 +620,13 @@ bool MainWindow::code_input_check(const QString &input){
     QRegularExpressionMatch twelveLong = istwelveLong_digits.match(code);
     QRegularExpressionMatch eightLong = isEightLong_digits.match(code);
 
-    qDebug() << code + " : " + QString::number(code.size());
+    //qDebug() << code + " : " + QString::number(code.size());
     if(!eightLong.hasMatch()){
         if(!twelveLong.hasMatch()){
             return false;
         }
     }else{
-        qDebug() << expandtoUPCA(code);
+        //qDebug() << expandtoUPCA(code);
         code = expandtoUPCA(code);
     }
 
@@ -572,7 +637,7 @@ bool MainWindow::code_input_check(const QString &input){
     }
     int last_digit = code[11].digitValue();
     int  checksum = (10 - (sum %  10)) % 10;
-    qDebug() << QString::number(checksum) + " ? " + QString::number(last_digit);
+    //qDebug() << QString::number(checksum) + " ? " + QString::number(last_digit);
     if(checksum == last_digit){
         return true;
     } else {
@@ -611,21 +676,15 @@ void MainWindow::update_foundView(QString rawitem){ //function should be expecti
 
 QString MainWindow::plusOne(QString qty){
     bool converted;
-
-    qDebug() << qty;
     int plus = qty.toInt(&converted);
-
     if(converted){
         plus += 1;
         QString qty_label = QString::number(plus);
-        qDebug() << qty_label;
         return qty_label;
     }else {
         return "";
     }
 }
-
-
 
 void MainWindow::on_code_inputBox_returnPressed()
 {
@@ -639,90 +698,74 @@ void MainWindow::on_code_inputBox_returnPressed()
     }
 }
 
+void MainWindow::digit_clicked(QString digit){
+    QString given = ui->code_inputBox->text();
+    given += digit;
+    ui->code_inputBox->setText(given);
+}
+
 void MainWindow::on_one_button_clicked()
 {
-    QString given = ui->code_inputBox->text();
-    given += "1";
-    ui->code_inputBox->setText(given);
+    digit_clicked("1");
 }
 
 void MainWindow::on_two_Button_clicked()
 {
-    QString given = ui->code_inputBox->text();
-    given += "2";
-    ui->code_inputBox->setText(given);
+    digit_clicked("2");
 }
 
 
 void MainWindow::on_three_button_clicked()
 {
-    QString given = ui->code_inputBox->text();
-    given += "3";
-    ui->code_inputBox->setText(given);
+    digit_clicked("3");
 }
 
 
 void MainWindow::on_four_button_clicked()
 {
-    QString given = ui->code_inputBox->text();
-    given += "4";
-    ui->code_inputBox->setText(given);
+    digit_clicked("4");
 }
 
 
 void MainWindow::on_five_button_clicked()
 {
-    QString given = ui->code_inputBox->text();
-    given += "5";
-    ui->code_inputBox->setText(given);
+    digit_clicked("5");
 }
 
 
 void MainWindow::on_six_button_clicked()
 {
-    QString given = ui->code_inputBox->text();
-    given += "6";
-    ui->code_inputBox->setText(given);
+    digit_clicked("6");
 }
 
 
 void MainWindow::on_seven_button_clicked()
 {
-    QString given = ui->code_inputBox->text();
-    given += "7";
-    ui->code_inputBox->setText(given);
+    digit_clicked("7");
 }
 
 
 void MainWindow::on_eight_button_clicked()
 {
-    QString given = ui->code_inputBox->text();
-    given += "8";
-    ui->code_inputBox->setText(given);
+    digit_clicked("8");
 }
 
 
 void MainWindow::on_nine_button_clicked()
 {
-    QString given = ui->code_inputBox->text();
-    given += "9";
-    ui->code_inputBox->setText(given);
+    digit_clicked("9");
 }
 
 
 void MainWindow::on_zero_button_clicked()
 {
-    QString given = ui->code_inputBox->text();
-    given += "0";
-    ui->code_inputBox->setText(given);
+    digit_clicked("0");
 }
 
 
 void MainWindow::on_period_button_clicked()
 {
-    QString given = ui->code_inputBox->text();
-    given += ".";
-    ui->code_inputBox->setText(given);
+    digit_clicked(".");
 }
 
 
@@ -769,7 +812,12 @@ void MainWindow::on_load_button_clicked()
 void MainWindow::on_save_button_clicked()
 {
     QString ticketDestinaton = checkNotedTicket();
-    saveFile(ui->ticketview, ticketDestinaton);
+    QString saveTo = QFileDialog::getSaveFileName(nullptr, "Save As", ticketDestinaton, nullptr);
+    if(saveTo != ""){
+        saveFile(ui->ticketview, saveTo);
+        noteCurrentPath(saveTo, ticketLocation);
+        loadFile(saveTo);
+    }
 }
 
 
@@ -818,7 +866,7 @@ void MainWindow::on_receipt_button_clicked()
             QString price = ui->ticketview->item(row, 3) ? ui->ticketview->item(row, 3)->text() : "0.00";
 
             QString formatted_line = QString("%1 %2 @$%3(x%4)").arg(upc, description, price, qty);
-            qDebug() << formatted_line ;
+            //qDebug() << formatted_line ;
             output << formatted_line << "\n";
         }
     }else{
@@ -826,7 +874,7 @@ void MainWindow::on_receipt_button_clicked()
         for(QTableWidgetItem *row_item : selectItems){
             if(row_item){
                 int row = row_item->row();
-                qDebug()  << row_item->text();
+                //qDebug()  << row_item->text();
                 QString upc = ui->ticketview->item(row, 0) ? ui->ticketview->item(row, 0)->text() : "no_upc";
                 QString description = ui->ticketview->item(row, 1) ? ui->ticketview->item(row, 1)->text() : "label";
                 QString qty = ui->ticketview->item(row, 2) ? ui->ticketview->item(row, 2)->text() : "1";
@@ -851,12 +899,32 @@ void MainWindow::on_addtoticket_button_clicked()
     if(selectItems.isEmpty()){
         qDebug() << "addtoticket: Nothing selected";
     }else{
+        QList<int *> doneList;
         for(QTableWidgetItem *row_item : selectItems){
-            qDebug() << row_item->row();
+            //qDebug() << row_item->row();
             int row = row_item->row();
-            QString upc = ui->foundView->item(row, 0)->text();
-            addtoTicket(upc);
+            int *rowValue = new int(row);
+            bool alreadyDone = false;
+            for(int *doneitem : doneList){
+                //qDebug() << QString::number(*doneitem) + " : " + QString::number(*rowValue);
+                if(*doneitem == *rowValue){
+                    alreadyDone = true;
+
+                }else{
+                    alreadyDone = false;
+                }
+                //qDebug() << alreadyDone;
+            }
+            qDebug() << alreadyDone;
+            if(!alreadyDone){
+                qDebug() << "adding to ticket: "+ QString::number(row);
+                QString upc = ui->foundView->item(row, 0)->text();
+                addtoTicket(upc);
+            }
+            doneList.append(rowValue);
         }
+        qDeleteAll(doneList);
+        doneList.clear();
     }
 }
 
@@ -909,7 +977,6 @@ void MainWindow::on_qtyChange_button_clicked()
 }
 
 void MainWindow::on_actionSales_Tax_clicked(){
-    qDebug() << "adjust tax clicked";
     const QString input = ui->code_inputBox->text();
 
     QFile file(salesTaxLocation);

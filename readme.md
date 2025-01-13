@@ -8,12 +8,10 @@ Currently a work in progress...
 
 This Last update:
 
-- fixed the UPC Validation
-- sales taxes actually functions (enter % value in input box, then click sales tax in the dropdown menu)
-- Ability to set Default ticket folder
-- ability to set database location
-- Moved settings files to .register folder in homepath
-- Ticket Name in Window Title
-- Various small bugs
+- barcodes in the ticket view
+- fixed add from database search adding items in quantities of 3
+- save ticket button replaced with Save As button (to choose ticket name and location)
+- an actual App Icon
+- if not found as a UPCE, the code will be expanded and converted to UPCA and searched again 
 
-Jan 7th 2025
+Jan 12th 2025
