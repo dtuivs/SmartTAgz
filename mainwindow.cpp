@@ -17,6 +17,10 @@
 #include <QDateTime>
 #include <QDebug>
 #include <zint.h>
+#include "settings.h"
+#include "register_files.h"
+
+register_files mainCabinet;
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -25,10 +29,8 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
 
     connect(ui->ticketview, &QTableWidget::cellChanged, this, &MainWindow::update_totalPrice);
-    loadFile(checkNotedTicket());
-    connect(ui->actionSales_Tax, &QAction::triggered, this, &MainWindow::on_actionSales_Tax_clicked);
-    connect(ui->actionLocate_Database, &QAction::triggered, this, &MainWindow::on_actionLocate_Database_clicked);
-    connect(ui->actionTickets_Folder, &QAction::triggered, this, &MainWindow::on_actionTicketFolder_clicked);
+    loadFile(mainCabinet.checkNotedTicket());
+    connect(ui->actionSettings, &QAction::triggered, this, &MainWindow::on_actionSettings_clicked);
     connect(ui->ticketview, &QTableWidget::cellChanged, this, &MainWindow::cellChanged);
 
     QRegularExpression input_pattern(R"(^\d{8}|\d{12}$)");
@@ -38,7 +40,6 @@ MainWindow::MainWindow(QWidget *parent)
     ui->enter_button->setDisabled(true);
     ui->ticketview->setIconSize(QSize(300, 300));
     ui->ticketview->resizeColumnsToContents();
-    checkNotedDatabase();
 }
 
 MainWindow::~MainWindow()
@@ -53,11 +54,11 @@ QRegularExpression isPrice_one(R"(^\$\d+(\.\d{1,2})?$)");
 QRegularExpression isPrice_two(R"(^price\:\d+(\.\d{1,2})?$)");
 QRegularExpression isQty(R"(^x\d+$)");
 
-const QString settingsFolder = QDir::homePath()+"/.register/";
-const QString ticketLocation = settingsFolder+"currentList.txt";
-const QString salesTaxLocation = settingsFolder+"tax.txt";
-const QString defaultTicketFolderLocation = settingsFolder+"defaultTicketsFolder.txt";
-const QString databaseLocation = settingsFolder+"databaselocation.txt";
+// const QString settingsFolder = QDir::homePath()+"/.register/";
+// const QString ticketLocation = settingsFolder+"currentList.txt";
+// const QString salesTaxLocation = settingsFolder+"tax.txt";
+// const QString defaultTicketFolderLocation = settingsFolder+"defaultTicketsFolder.txt";
+// const QString databaseLocation = settingsFolder+"databaselocation.txt";
 
 void MainWindow::addtoTicket(QString lookup_code){
 
@@ -79,7 +80,7 @@ void MainWindow::addtoTicket(QString lookup_code){
     if(!found){
 
         qDebug() << "Checking database.";
-        QString databasefilepath = checkNotedDatabase();
+        QString databasefilepath = mainCabinet.checkNotedDatabase();
         QFile databaseFile(databasefilepath);
         if(!databaseFile.open(QIODevice::ReadOnly | QIODevice::Text)){
             qDebug() << "RETURNPRESSED: coulndt open database.";
@@ -187,10 +188,7 @@ void MainWindow::addtoTicket(QString lookup_code){
 }
 
 QImage MainWindow::generateBarcode(const QString &code){
-
-
     struct zint_symbol *symbol = ZBarcode_Create();
-
     if(!symbol){
         qWarning("Failed making symbols!");
         return QImage();
@@ -208,8 +206,6 @@ QImage MainWindow::generateBarcode(const QString &code){
         symbol->whitespace_width = 10;
         symbol->border_width = 2;
     }
-
-
     QByteArray codeData = code.toUtf8();
     int error = ZBarcode_Encode_and_Buffer(symbol, (unsigned char *)codeData.constData(), 0, 0);
 
@@ -233,89 +229,29 @@ QImage MainWindow::generateBarcode(const QString &code){
 }
 
 void MainWindow::cellChanged(int row, int column){
-    //qDebug() << "Cell Changed -- row: " + QString::number(row) + ", Column: " + QString::number(column);
+    qDebug() << "Cell Changed -- row: " + QString::number(row) + ", Column: " + QString::number(column);
     if(column == 2){
         //update_totalPrice();
     }else if (column == 1 || column == 3){
+        QString upc = ui->ticketview->item(row, 0) ? ui->ticketview->item(row, 0)->text() : "noupc";
+        QString description = ui->ticketview->item(row, 1)->text();
         qDebug() << row;
         if(column==3){
-        //    update_totalPrice();
+            if(ui->ticketview->item(row, 1)->text() != nullptr && ui->ticketview->item(row, 1)->text() != nullptr){
+                QString price = ui->ticketview->item(row, 3) ? ui->ticketview->item(row, 3)->text() : "";
+                mainCabinet.updateDatabase(upc, description, price);
+            }
+        }else if(column==1){
+            mainCabinet.updateDatabaseDescription(upc, description);
         }
         //qDebug() << ui->ticketview->item(row, 1)->text();
-        if(ui->ticketview->item(row, 1)->text() != nullptr || ui->ticketview->item(row, 1)->text() != "label"){
-            QString description = ui->ticketview->item(row, 1)->text();
-            QString upc = ui->ticketview->item(row, 0) ? ui->ticketview->item(row, 0)->text() : "noupc";
-            QString price = ui->ticketview->item(row, 3) ? ui->ticketview->item(row, 3)->text() : "";
-
-            updateDatabase(upc, description, price);
-        }else{
-            qDebug() << "Bloop: cellchanged ticketcheck";
-        }
     }
     autosave();
     ui->ticketview->resizeColumnsToContents();
 }
 
-void MainWindow::updateDatabase(QString upc, QString description, QString price){
-    QString updated_item;
-    bool pricePresent = false;
-    if(price == ""){
-        updated_item = QString("%1 - %2").arg(upc, description);
-    }else{
-        pricePresent = true;
-        updated_item = QString("%1 - %2 #)- price:%3").arg(upc, description, price);
-    }
-    qDebug()  << updated_item;
-    QString database_filepath = checkNotedDatabase();
-    QFile database_file = database_filepath;
-    if(!database_file.open(QIODevice::ReadOnly | QIODevice::Text)){
-        qDebug() << "updateDatabase: oops, couldn't open database.";
-    }
-
-    QStringList lines;
-    QTextStream in(&database_file);
-    bool found;
-    while(!in.atEnd()){
-        QString line = in.readLine();
-        if(line.startsWith(upc)){
-            QStringList splitupclabel = line.split(" - ");
-            QStringList parts = splitupclabel[1].trimmed().split(" #)- ");
-
-            if(parts.size() > 1 && !pricePresent){                          //check database for a price and whether input has new price
-                QString databasePrice = parts[1].trimmed();
-                updated_item = QString("%1 #)- %2").arg(updated_item, databasePrice);
-            }
-
-            lines.append(updated_item);
-
-            found = true;
-            qDebug() << "updating one.";
-
-        }else{
-            lines.append(line);
-        }
-    }
-    if(!found){
-        lines.append(updated_item);
-        qDebug() << "appending one.";
-    }
-    database_file.close();
-
-    QTextStream out(&database_file);
-    if(!database_file.open(QIODevice::WriteOnly | QIODevice::Text)){
-        qDebug() << "updateDatabase: oops, couldn't open database.";
-    }
-
-    for(const QString &line : lines){
-        out << line << "\n";
-    }
-    database_file.close();
-    qDebug() << "save successful: database";
-
-}
-
 void MainWindow::autosave(){
-    QString currentTicket = checkNotedTicket();
+    QString currentTicket = mainCabinet.checkNotedTicket();
     saveFile(ui->ticketview, currentTicket);
 }
 
@@ -349,7 +285,7 @@ void MainWindow::update_totalPrice(){
         }
     }
     //qDebug() << total;
-    float tax = checkNotedTax().toFloat();
+    float tax = mainCabinet.checkNotedTax().toFloat();
     float tax_cut = tax/100;
     tax_cut = tax_cut*total;
     total = total + tax_cut;
@@ -380,83 +316,6 @@ QString MainWindow::processQty(const QString &quantity){
     }else{
         return QString();
     }
-}
-
-QString MainWindow::checkNotedTicketFolder(){
-    QFile note(defaultTicketFolderLocation);
-
-    if(!note.exists()){
-        qDebug() << "defaultTicketsFolder.txt not found";
-        return QDir::homePath()+"/.register/";
-    }
-
-    if(!note.open(QIODevice::ReadOnly | QIODevice::Text)){
-        qDebug() << "Can't REad?! defaultTicketsFolder.txt";
-        return QDir::homePath()+"/.register/";
-    }
-
-    QTextStream in(&note);
-    QString defaultTicketFolder = in.readLine();
-    note.close();
-    return defaultTicketFolder;
-}
-
-QString MainWindow::checkNotedDatabase(){
-    QFile note(databaseLocation);
-
-    if(!note.exists()){
-        qDebug() << "checkNotedDatabase.txt not found";
-        return QDir::homePath()+"/.register/upc_database.txt";
-    }
-
-    if(!note.open(QIODevice::ReadOnly | QIODevice::Text)){
-        qDebug() << "Can't REad?! checkNotedDatabase.txt";
-        return QDir::homePath()+"/.register/upc_database.txt";
-    }
-
-    QTextStream in(&note);
-    QString databasePath = in.readLine();
-    note.close();
-    ui->databaseLocation_label->setText(databasePath);
-    return databasePath;
-}
-
-QString MainWindow::checkNotedTax(){
-
-    QFile note(salesTaxLocation);
-    if(!note.exists()){
-        qDebug() << "tax.txt not found";
-        return "";
-    }
-    if(!note.open(QIODevice::ReadOnly | QIODevice::Text)){
-        qDebug() << "coudln't load tax.txt";
-        return "";
-    }
-
-    QTextStream in(&note);
-    QString currentTax = in.readLine();
-    note.close();
-
-    return currentTax;
-}
-
-QString MainWindow::checkNotedTicket(){
-
-    QFile note(ticketLocation);
-    if(!note.exists()){
-        qDebug() << "currentList.txt not found";
-        return "";
-    }
-    if(!note.open(QIODevice::ReadOnly | QIODevice::Text)){
-        qDebug() << "coudln't load currentList.txt";
-        return "";
-    }
-
-    QTextStream in(&note);
-    QString currentTicketPath = in.readLine();
-    note.close();
-
-    return currentTicketPath;
 }
 
 void MainWindow::loadFile(QString filename){
@@ -552,20 +411,6 @@ void MainWindow::saveFile(QTableWidget *given_table, const QString &filePath){
     }
     ticket_filePath.close();
     qDebug() << "Save Successful.";
-}
-
-void MainWindow::noteCurrentPath(const QString &filepath, const QString &destinationPath){
-    QFile note(destinationPath);
-
-    if(!note.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        qDebug() << ": could not load note";
-        return;
-    }
-
-    QTextStream output(&note);
-    output << filepath;
-    note.close();
-    //qDebug() << "current ticket noted.";
 }
 
 void MainWindow::searchDatabase(const QString &SearchText, const QString &databasePath){
@@ -791,31 +636,31 @@ QString MainWindow::generateTimestamp(){
 
 void MainWindow::on_newticket_button_clicked()
 {
-    QDir folderPath(settingsFolder);
+    QDir folderPath(mainCabinet.return_settingsFolder());
     if(!folderPath.exists()){
         folderPath.mkpath(".");
     }
     QString newfilename = generateTimestamp() + "_List.txt";
-    noteCurrentPath( checkNotedTicketFolder()+"/"+newfilename, ticketLocation);
+    mainCabinet.noteCurrentTicketPath(mainCabinet.checkNotedTicketFolder()+"/"+newfilename, mainCabinet.return_ticketLocation());
     ui->ticketview->setRowCount(0);
     setWindowTitle(newfilename);
 }
 
 void MainWindow::on_load_button_clicked()
 {
-    QString filename = QFileDialog::getOpenFileName(nullptr, "Load Ticket", defaultTicketFolderLocation, nullptr);
-    noteCurrentPath(filename, ticketLocation);
+    QString filename = QFileDialog::getOpenFileName(nullptr, "Load Ticket", mainCabinet.return_defaultTicketFolderLocation(), nullptr);
+    mainCabinet.noteCurrentTicketPath(filename, mainCabinet.return_ticketLocation());
     loadFile(filename);
 }
 
 
 void MainWindow::on_save_button_clicked()
 {
-    QString ticketDestinaton = checkNotedTicket();
+    QString ticketDestinaton = mainCabinet.checkNotedTicket();
     QString saveTo = QFileDialog::getSaveFileName(nullptr, "Save As", ticketDestinaton, nullptr);
     if(saveTo != ""){
         saveFile(ui->ticketview, saveTo);
-        noteCurrentPath(saveTo, ticketLocation);
+        mainCabinet.noteCurrentTicketPath(saveTo, mainCabinet.return_ticketLocation());
         loadFile(saveTo);
     }
 }
@@ -823,7 +668,7 @@ void MainWindow::on_save_button_clicked()
 
 void MainWindow::on_searchbar_input_textChanged(const QString &arg1)
 {
-    QString databasefilePath = checkNotedDatabase();
+    QString databasefilePath = mainCabinet.checkNotedDatabase();
     searchDatabase(arg1, databasefilePath);
 }
 
@@ -976,56 +821,18 @@ void MainWindow::on_qtyChange_button_clicked()
     }
 }
 
-void MainWindow::on_actionSales_Tax_clicked(){
-    const QString input = ui->code_inputBox->text();
+void MainWindow::on_actionSettings_clicked(){
 
-    QFile file(salesTaxLocation);
-    if(!file.open(QIODevice::WriteOnly | QIODevice::Text)){
-        qDebug() << "Coudln't find tax";
+    if(!settingsWindow){
+        settingsWindow = new settings(this);
+        settingsWindow->setAttribute(Qt::WA_DeleteOnClose);
+        connect(settingsWindow, &QWidget::destroyed, this, [this](){
+            settingsWindow = nullptr;
+        });
+        settingsWindow->show();
+    } else {
+        settingsWindow->raise();
+        settingsWindow->activateWindow();
     }
 
-    QTextStream output(&file);
-
-    output << input;
-    file.close();
-    qDebug() << "Tax updated";
-
-    ui->code_inputBox->setText("");
-    ui->ticketview->resizeColumnsToContents();
-    emit ui->ticketview->cellChanged(0, 2);
-}
-
-void MainWindow::on_actionLocate_Database_clicked(){
-
-    QString databaseNewLocation = QFileDialog::getOpenFileName();
-    QFile file(databaseLocation);
-
-    if(!file.open(QIODevice::WriteOnly | QIODevice::Text)){
-        qDebug() << "Coudln't find databaselocation.txt";
-    }
-
-    QTextStream output(&file);
-
-    output << databaseNewLocation;
-
-    file.close();
-    qDebug() << "Database location updated.";
-}
-
-void MainWindow::on_actionTicketFolder_clicked(){
-    QString ticketFolder = QFileDialog::getExistingDirectory();
-
-
-    QFile file(defaultTicketFolderLocation);
-
-    if(!file.open(QIODevice::WriteOnly | QIODevice::Text)){
-        qDebug() << "Couldn't find defaultTicketsFolder.txt";
-    }
-
-    QTextStream output(&file);
-
-    output << ticketFolder;
-
-    file.close();
-    qDebug() << "Ticket Folder updated.";
 }

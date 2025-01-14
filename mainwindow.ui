@@ -728,21 +728,6 @@
                 </column>
                </widget>
               </item>
-              <item>
-               <widget class="QLabel" name="databaseLocation_label">
-                <property name="font">
-                 <font>
-                  <pointsize>10</pointsize>
-                 </font>
-                </property>
-                <property name="text">
-                 <string>database location</string>
-                </property>
-                <property name="wordWrap">
-                 <bool>true</bool>
-                </property>
-               </widget>
-              </item>
              </layout>
             </item>
            </layout>
@@ -768,9 +753,7 @@
     <property name="title">
      <string>settings</string>
     </property>
-    <addaction name="actionSales_Tax"/>
-    <addaction name="actionLocate_Database"/>
-    <addaction name="actionTickets_Folder"/>
+    <addaction name="actionSettings"/>
    </widget>
    <addaction name="menuAdjust_Tax"/>
   </widget>
@@ -787,6 +770,16 @@
   <action name="actionTickets_Folder">
    <property name="text">
     <string>Tickets Folder</string>
+   </property>
+  </action>
+  <action name="actionsettings">
+   <property name="text">
+    <string>Settings</string>
+   </property>
+  </action>
+  <action name="actionSettings">
+   <property name="text">
+    <string>Settings</string>
    </property>
   </action>
  </widget>

@@ -11,6 +11,8 @@
 #include <QFile>
 #include <QTextStream>
 #include <QMessageBox>
+#include "settings.h"
+#include "register_files.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -34,8 +36,6 @@ private slots:
     void on_load_button_clicked();
 
     void loadFile(QString filename);
-
-    void noteCurrentPath(const QString &filepath, const QString &destinationPath);
 
     void saveFile(QTableWidget *given_table, const QString &filePath);
 
@@ -88,13 +88,13 @@ private slots:
 private:
     Ui::MainWindow *ui;
 
+    settings *settingsWindow = nullptr;
+
     void addtoTicket(QString lookup_code);
 
     void cellChanged(int row, int column);
 
     QImage generateBarcode(const QString &code);
-
-    void updateDatabase(QString upc, QString description, QString price);
 
     bool code_input_check(const QString &input);
 
@@ -103,14 +103,6 @@ private:
     QString generateTimestamp();
 
     QString processQty(const QString &quantity);
-
-    QString checkNotedTicketFolder();
-
-    QString checkNotedDatabase();
-
-    QString checkNotedTax();
-
-    QString checkNotedTicket();
 
     void update_foundView(QString rawitem);
 
@@ -124,11 +116,7 @@ private:
 
     void digit_clicked(QString digit);
 
-    void on_actionSales_Tax_clicked();
-
-    void on_actionLocate_Database_clicked();
-
-    void on_actionTicketFolder_clicked();
+    void on_actionSettings_clicked();
 
     QString expandtoUPCA(const QString &upc);
 

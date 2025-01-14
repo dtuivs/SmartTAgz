@@ -8,10 +8,8 @@ Currently a work in progress...
 
 This Last update:
 
-- barcodes in the ticket view
-- fixed add from database search adding items in quantities of 3
-- save ticket button replaced with Save As button (to choose ticket name and location)
-- an actual App Icon
-- if not found as a UPCE, the code will be expanded and converted to UPCA and searched again 
+- created class for files interfacing (work in progress mirgrating things over)
+- Created window for settings
 
-Jan 12th 2025
+
+Jan 13th 2025
