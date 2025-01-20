@@ -11,6 +11,10 @@ class register_files
 public:
     register_files();
 
+    QString checkPersistenceFile(QString property);
+
+    void updatePersistenceFile(QString property, QString newValue);
+
     QString return_settingsFolder();
 
     QString return_ticketLocation();

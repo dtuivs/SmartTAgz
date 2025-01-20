@@ -11,7 +11,66 @@ const QString salesTaxLocation = settingsFolder+"tax.txt";
 const QString defaultTicketFolderLocation = settingsFolder+"defaultTicketsFolder.txt";
 const QString databaseLocation = settingsFolder+"databaselocation.txt";
 
+const QString persistenceFilePath = settingsFolder+"persistence";
+
 register_files::register_files() {
+
+}
+
+QString register_files::checkPersistenceFile(QString property){
+    QFile persistenceFile(persistenceFilePath);
+
+    if(!persistenceFile.open(QIODevice::ReadOnly | QIODevice::Text)){
+        return QString();
+    }
+
+    QTextStream in(&persistenceFile);
+    QString propertyValue = "";
+    while(!in.atEnd()){
+        QString line = in.readLine();
+        if(line.startsWith(property)){
+            QStringList Splittext = line.split(": ");
+            propertyValue = Splittext[1].trimmed();
+        }
+    }
+    persistenceFile.close();
+    return propertyValue;
+}
+
+void register_files::updatePersistenceFile(QString property, QString newValue){
+    QString updatedProperty = QString("%1: %2").arg(property, newValue);
+    QFile persistenceFile(persistenceFilePath);
+
+    if(!persistenceFile.open(QIODevice::ReadOnly | QIODevice::Text)){
+
+    }
+    QTextStream in(&persistenceFile);
+    QStringList NewPropertyList;
+    bool found = false;
+
+    while(!in.atEnd()){
+        QString line = in.readLine();
+        if(line.startsWith(property)){
+            NewPropertyList.append(updatedProperty);
+            found = true;
+        }else{
+                NewPropertyList.append(updatedProperty);
+        }
+    }
+    if(!found){
+        NewPropertyList.append(updatedProperty);
+    }
+    persistenceFile.close();
+    QTextStream out(&persistenceFile);
+    if(!persistenceFile.open(QIODevice::WriteOnly | QIODevice::Text)){
+
+    }
+
+    for(const QString &line : NewPropertyList){
+        out << line << "\n";
+    }
+    persistenceFile.close();
+    qDebug() << "Persistence updated:" + updatedProperty;
 
 }
 

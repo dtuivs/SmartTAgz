@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(Register_App VERSION 0.4 LANGUAGES CXX)
+project(Register_App VERSION 0.5 LANGUAGES CXX)
 
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
@@ -21,6 +21,9 @@ endif()
 
 include_directories(${ZINT_INCLUDE_DIR})
 
+set(MACOSX_BUNDLE_ICON_FILE AppIcon.icns)
+set_source_files_properties(icons/AppIcon.icns PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
+
 set(TS_FILES Register_App_en_US.ts)
 set(LIBS ${ZINT_LIBRARY})
 
@@ -34,6 +37,7 @@ set(PROJECT_SOURCES
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(Register_App
+        MACOSX_BUNDLE
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
         icons.qrc
@@ -61,7 +65,6 @@ else()
 
     qt5_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 endif()
-
 target_link_libraries(Register_App PRIVATE Qt${QT_VERSION_MAJOR}::Widgets ${LIBS} )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
@@ -78,6 +81,12 @@ set_target_properties(Register_App PROPERTIES
     WIN32_EXECUTABLE TRUE
 )
 
+target_sources(Register_App PRIVATE icons/AppIcon.icns)
+
+# set_target_properties(Register_App PROPERTIES
+#     MACOSX_BUNDLE_INFO_PLIST "${CMAKE_SOURCE_DIR}/info.plist.in"
+#     )
+
 include(GNUInstallDirs)
 install(TARGETS Register_App
     BUNDLE DESTINATION .
@@ -88,6 +97,3 @@ install(TARGETS Register_App
 if(QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(Register_App)
 endif()
-
-#add_subdirectory(SCodes/src)
-#target_link_libraries(${PROJECT_NAME} PUBLIC SCodes)

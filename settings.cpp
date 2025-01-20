@@ -15,6 +15,7 @@ settings::settings(QWidget *parent)
     setWindowTitle("Settings");
     ui->ticketFolder_input->setText(cabinet.checkNotedTicketFolder());
     ui->databaseLocation_input->setText(cabinet.checkNotedDatabase());
+    ui->CurrentTicketPath_label->setText(cabinet.checkNotedTicket());
     ui->salesTax_input->setText(cabinet.checkNotedTax());
 
 }

@@ -85,6 +85,10 @@ private slots:
 
     void on_qtyChange_button_clicked();
 
+    void on_code_inputBox_2_textChanged(const QString &arg1);
+
+    void on_code_inputBox_2_returnPressed();
+
 private:
     Ui::MainWindow *ui;
 
@@ -93,6 +97,8 @@ private:
     void addtoTicket(QString lookup_code);
 
     void cellChanged(int row, int column);
+
+    void toggle_keypad(bool isGone);
 
     QImage generateBarcode(const QString &code);
 
