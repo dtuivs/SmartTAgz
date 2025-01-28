@@ -19,22 +19,6 @@ public:
 
     QString return_ticketLocation();
 
-    QString return_defaultTicketFolderLocation();
-
-    QString return_salesTaxLocation();
-
-    QString return_databaseLocation();
-
-    QString checkNotedTicketFolder();
-
-    QString checkNotedDatabase();
-
-    QString checkNotedTax();
-
-    QString checkNotedTicket();
-
-    void noteCurrentTicketPath(const QString &ticketPath, const QString &Destination);
-
     void updateDatabaseDescription(QString upc, QString description);
 
     void updateDatabasePrice(QString upc, QString price);

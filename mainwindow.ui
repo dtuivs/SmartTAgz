@@ -41,7 +41,7 @@
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_3">
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_2">
+         <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="3,0,0,0,3">
           <property name="sizeConstraint">
            <enum>QLayout::SizeConstraint::SetMaximumSize</enum>
           </property>
@@ -422,6 +422,16 @@
              </widget>
             </item>
             <item>
+             <widget class="QPushButton" name="exportBarcodes_button">
+              <property name="enabled">
+               <bool>true</bool>
+              </property>
+              <property name="text">
+               <string>Export Barcode(s)</string>
+              </property>
+             </widget>
+            </item>
+            <item>
              <widget class="QPushButton" name="barcode_button">
               <property name="text">
                <string>Barcode</string>
@@ -474,7 +484,7 @@
            </widget>
           </item>
           <item>
-           <layout class="QVBoxLayout" name="verticalLayout_2">
+           <layout class="QVBoxLayout" name="ticket_layout_frame">
             <property name="sizeConstraint">
              <enum>QLayout::SizeConstraint::SetNoConstraint</enum>
             </property>

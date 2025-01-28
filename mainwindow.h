@@ -89,6 +89,8 @@ private slots:
 
     void on_code_inputBox_2_returnPressed();
 
+    void on_exportBarcodes_button_clicked();
+
 private:
     Ui::MainWindow *ui;
 
@@ -101,6 +103,8 @@ private:
     void toggle_keypad(bool isGone);
 
     QImage generateBarcode(const QString &code);
+
+    void exportBarcodesList();
 
     bool code_input_check(const QString &input);
 

@@ -19,6 +19,8 @@
 #include <zint.h>
 #include "settings.h"
 #include "register_files.h"
+#include <QPainter>
+#include <QtSvg/QtSvg>
 
 register_files mainCabinet;
 
@@ -29,7 +31,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
 
     connect(ui->ticketview, &QTableWidget::cellChanged, this, &MainWindow::update_totalPrice);
-    loadFile(mainCabinet.checkNotedTicket());
+    loadFile(mainCabinet.checkPersistenceFile("CURRENT_TICKET_LOCATION"));
     connect(ui->actionSettings, &QAction::triggered, this, &MainWindow::on_actionSettings_clicked);
     connect(ui->action_HideKeypad, &QAction::triggered, this, &MainWindow::toggle_keypad);
     connect(ui->ticketview, &QTableWidget::cellChanged, this, &MainWindow::cellChanged);
@@ -39,8 +41,6 @@ MainWindow::MainWindow(QWidget *parent)
     ui->code_inputBox->setValidator(input_check);
     ui->code_inputBox_2->setValidator(input_check);
 
-    ui->enter_button->setDisabled(true);
-    ui->code_inputBox_2->setHidden(true);
     ui->ticketview->setIconSize(QSize(300, 300));
     ui->ticketview->resizeColumnsToContents();
     QString keypadhiddenString = mainCabinet.checkPersistenceFile("KEYPADHIDDEN");
@@ -51,6 +51,8 @@ MainWindow::MainWindow(QWidget *parent)
         toggle_keypad(0);
         ui->action_HideKeypad->setChecked(false);
     }
+
+    ui->exportBarcodes_button->setHidden(true);
 }
 
 MainWindow::~MainWindow()
@@ -87,7 +89,7 @@ void MainWindow::addtoTicket(QString lookup_code){
         if(!found){
 
             qDebug() << "Checking database.";
-            QString databasefilepath = mainCabinet.checkNotedDatabase();
+            QString databasefilepath = mainCabinet.checkPersistenceFile("DATABASE_FILE_LOCATION");
             QFile databaseFile(databasefilepath);
             if(!databaseFile.open(QIODevice::ReadOnly | QIODevice::Text)){
                 qDebug() << "RETURNPRESSED: coulndt open database.";
@@ -130,7 +132,7 @@ void MainWindow::addtoTicket(QString lookup_code){
                     barcodeSpace->setIcon(QIcon(sizedBarcode));
                     ui->ticketview->setItem(row, 4, barcodeSpace);
 
-                    ui->ticketview->scrollToItem(ui->ticketview->item(row, 1), QAbstractItemView::PositionAtBottom);
+                    ui->ticketview->scrollToBottom();
                 }
             }
 
@@ -172,7 +174,7 @@ void MainWindow::addtoTicket(QString lookup_code){
                         barcodeSpace->setIcon(QIcon(sizedBarcode));
                         ui->ticketview->setItem(row, 4, barcodeSpace);
 
-                        ui->ticketview->scrollToItem(ui->ticketview->item(row, 1), QAbstractItemView::PositionAtBottom);
+                        ui->ticketview->scrollToBottom();
                     }
                 }
 
@@ -193,10 +195,12 @@ void MainWindow::addtoTicket(QString lookup_code){
                 QPixmap sizedBarcode = barcode.scaled(ui->app_pageview->size()/3, Qt::KeepAspectRatio, Qt::SmoothTransformation);
                 barcodeSpace->setIcon(QIcon(sizedBarcode));
                 ui->ticketview->setItem(row, 4, barcodeSpace);
-                ui->ticketview->scrollToItem(ui->ticketview->item(row, 2), QAbstractItemView::PositionAtBottom);
+                ui->ticketview->scrollToBottom();
             }
             databaseFile.close();
         }
+
+
     }
 }
 
@@ -219,6 +223,8 @@ void MainWindow::toggle_keypad(bool isGone){
         ui->nine_button->setHidden(true);
         ui->enter_button->setHidden(true);
         ui->period_button->setHidden(true);
+        ui->priceChange_button->setHidden(true);
+        ui->qtyChange_button->setHidden(true);
         ui->line->setHidden(true);
         ui->line_2->setHidden(true);
 
@@ -239,6 +245,8 @@ void MainWindow::toggle_keypad(bool isGone){
         ui->nine_button->setHidden(false);
         ui->enter_button->setHidden(false);
         ui->period_button->setHidden(false);
+        ui->priceChange_button->setHidden(false);
+        ui->qtyChange_button->setHidden(false);
         ui->line->setHidden(false);
         ui->line_2->setHidden(false);
 
@@ -248,7 +256,8 @@ void MainWindow::toggle_keypad(bool isGone){
     mainCabinet.updatePersistenceFile("KEYPADHIDDEN", StringIsGone);
 }
 
-QImage MainWindow::generateBarcode(const QString &code){
+QImage MainWindow::generateBarcode(const QString &code)
+{
     struct zint_symbol *symbol = ZBarcode_Create();
     if(!symbol){
         qWarning("Failed making symbols!");
@@ -256,16 +265,18 @@ QImage MainWindow::generateBarcode(const QString &code){
     }
     if(code.size() == 8){
         symbol->symbology = BARCODE_UPCE;
-        symbol->height = 250;
-        symbol->width = 230;
+        symbol->height = 500;
+        symbol->width = 1000;
         symbol->whitespace_width = 10;
         symbol->border_width = 2;
+        symbol->show_hrt = 1;
     }else if(code.size() == 12){
         symbol->symbology = BARCODE_UPCA;
-        symbol->height = 250;
-        symbol->width = 350;
+        symbol->height = 500;
+        symbol->width = 1525;
         symbol->whitespace_width = 10;
         symbol->border_width = 2;
+        symbol->show_hrt = 1;
     }
     QByteArray codeData = code.toUtf8();
     int error = ZBarcode_Encode_and_Buffer(symbol, (unsigned char *)codeData.constData(), 0, 0);
@@ -281,12 +292,81 @@ QImage MainWindow::generateBarcode(const QString &code){
 
     for(int y= 0; y < symbol->bitmap_height; ++y){
         for(int x=0;x < symbol->bitmap_width; ++x){
-            barcodeImage.setPixelColor(x, y, symbol->bitmap[y*symbol->bitmap_width+x] ? Qt::black : Qt::white);
+            //barcodeImage.setPixelColor(x, y, symbol->bitmap[y*symbol->bitmap_width+x] ? Qt::black : Qt::white);
+            barcodeImage.setPixelColor(x, y, symbol->bitmap[y*symbol->bitmap_width+x/4] ? Qt::black : Qt::white);
         }
     }
 
     ZBarcode_Delete(symbol);
     return barcodeImage;
+}
+
+void MainWindow::exportBarcodesList(){
+
+    QList<QTableWidgetItem *> selectItems = ui->ticketview->selectedItems();
+
+    if(!selectItems.isEmpty()){
+        QString saveTo = QFileDialog::getExistingDirectory(this, "Save where?");
+
+        if(!saveTo.isEmpty()){
+            QList<int *> doneList;
+            for(QTableWidgetItem *row_item : selectItems){
+                int row = row_item->row();
+                int *rowValue = new int(row);
+                bool alreadyDone = false;
+                for(int *doneitem : doneList){
+                    alreadyDone = *doneitem==*rowValue ? true : false;
+                }
+
+                if(!alreadyDone){
+                    QString upc = ui->ticketview->item(row, 0)->text();
+                    QString fileName = QString("%1/%2_barcode.png").arg(saveTo, upc);
+
+                    struct zint_symbol *symbol = ZBarcode_Create();
+                    if(!symbol){
+                        qWarning("Failed making symbols!");
+                        //return QImage();
+                    }
+                    if(upc.size() == 8){
+                        symbol->symbology = BARCODE_UPCE;
+                        symbol->height = 500;
+                        symbol->width = 1000;
+                        symbol->whitespace_width = 10;
+                        symbol->border_width = 2;
+                        symbol->show_hrt = 1;
+                    }else if(upc.size() == 12){
+                        symbol->symbology = BARCODE_UPCA;
+                        symbol->height = 500;
+                        symbol->width = 1525;
+                        symbol->whitespace_width = 10;
+                        symbol->border_width = 2;
+                        symbol->show_hrt = 1;
+                    }
+                    QByteArray codeData = upc.toUtf8();
+                    int error = ZBarcode_Encode_and_Buffer(symbol, (unsigned char *)codeData.constData(), 0, 0);
+
+                    if(error != 0){
+                        qWarning("failed to encode upc");
+                        ZBarcode_Delete(symbol);
+                        //return QImage();
+                    }
+
+                    QImage barcodeImage(symbol->bitmap_width, symbol->bitmap_height, QImage::Format_ARGB32);
+                    barcodeImage.fill(Qt::white);
+
+                    for(int y= 0; y < symbol->bitmap_height; ++y){
+                        for(int x=0;x < symbol->bitmap_width; ++x){
+                            //barcodeImage.setPixelColor(x, y, symbol->bitmap[y*symbol->bitmap_width+x] ? Qt::black : Qt::white);
+                            barcodeImage.setPixelColor(x, y, symbol->bitmap[y*symbol->bitmap_width+x/4] ? Qt::black : Qt::white);
+                        }
+                    }
+                    barcodeImage.save(saveTo);
+                    ZBarcode_Delete(symbol);
+                }
+                doneList.append(rowValue);
+            }
+        }
+    }
 }
 
 void MainWindow::cellChanged(int row, int column){
@@ -312,7 +392,7 @@ void MainWindow::cellChanged(int row, int column){
 }
 
 void MainWindow::autosave(){
-    QString currentTicket = mainCabinet.checkNotedTicket();
+    QString currentTicket = mainCabinet.checkPersistenceFile("CURRENT_TICKET_LOCATION");
     saveFile(ui->ticketview, currentTicket);
 }
 
@@ -346,7 +426,7 @@ void MainWindow::update_totalPrice(){
         }
     }
     //qDebug() << total;
-    float tax = mainCabinet.checkNotedTax().toFloat();
+    float tax = mainCabinet.checkPersistenceFile("SALES_TAX_PERCENT").toFloat();
     float tax_cut = tax/100;
     tax_cut = tax_cut*total;
     total = total + tax_cut;
@@ -702,26 +782,26 @@ void MainWindow::on_newticket_button_clicked()
         folderPath.mkpath(".");
     }
     QString newfilename = generateTimestamp() + "_List.txt";
-    mainCabinet.noteCurrentTicketPath(mainCabinet.checkNotedTicketFolder()+"/"+newfilename, mainCabinet.return_ticketLocation());
+    mainCabinet.updatePersistenceFile("CURRENT_TICKET_LOCATION", mainCabinet.checkPersistenceFile("TICKET_FOLDER_LOCATION")+"/"+newfilename);
     ui->ticketview->setRowCount(0);
     setWindowTitle(newfilename);
 }
 
 void MainWindow::on_load_button_clicked()
 {
-    QString filename = QFileDialog::getOpenFileName(nullptr, "Load Ticket", mainCabinet.return_defaultTicketFolderLocation(), nullptr);
-    mainCabinet.noteCurrentTicketPath(filename, mainCabinet.return_ticketLocation());
+    QString filename = QFileDialog::getOpenFileName(nullptr, "Load Ticket", mainCabinet.checkPersistenceFile("TICKET_FOLDER_LOCATION"), nullptr);
+    mainCabinet.updatePersistenceFile("CURRENT_TICKET_LOCATION", filename);
     loadFile(filename);
 }
 
 
 void MainWindow::on_save_button_clicked()
 {
-    QString ticketDestinaton = mainCabinet.checkNotedTicket();
+    QString ticketDestinaton = mainCabinet.checkPersistenceFile("CURRENT_TICKET_LOCATION");
     QString saveTo = QFileDialog::getSaveFileName(nullptr, "Save As", ticketDestinaton, nullptr);
     if(saveTo != ""){
         saveFile(ui->ticketview, saveTo);
-        mainCabinet.noteCurrentTicketPath(saveTo, mainCabinet.return_ticketLocation());
+        mainCabinet.updatePersistenceFile("CURRENT_TICKET_LOCATION", saveTo);
         loadFile(saveTo);
     }
 }
@@ -729,7 +809,7 @@ void MainWindow::on_save_button_clicked()
 
 void MainWindow::on_searchbar_input_textChanged(const QString &arg1)
 {
-    QString databasefilePath = mainCabinet.checkNotedDatabase();
+    QString databasefilePath = mainCabinet.checkPersistenceFile("DATABASE_FILE_LOCATION");
     searchDatabase(arg1, databasefilePath);
 }
 
@@ -756,7 +836,7 @@ void MainWindow::on_delete_button_clicked()
 void MainWindow::on_receipt_button_clicked()
 {
     QString homePath = QDir::homePath();
-    QFile savePath = QFileDialog::getSaveFileName(nullptr, generateTimestamp()+"_receipt", homePath+"/Downloads/"+generateTimestamp()+"_receipt", nullptr) + ".txt";
+    QFile savePath = QFileDialog::getSaveFileName(nullptr, "Save Receipt", homePath+"/Downloads/"+generateTimestamp()+"_receipt", nullptr) + ".txt";
     if(!savePath.open(QIODevice::WriteOnly | QIODevice::Text)){
         qDebug() << "couldn't do it.";
     }
@@ -846,7 +926,7 @@ void MainWindow::on_barcode_button_clicked()
         incoming = ui->ticketview->item(row, 0)->text();
     }
     QPixmap image = QPixmap::fromImage(generateBarcode(incoming));
-    QPixmap shrunk = image.scaled(ui->app_pageview->size()/3, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    QPixmap shrunk = image.scaled(ui->app_pageview->size()/4, Qt::KeepAspectRatio, Qt::SmoothTransformation);
     ui->barcode_view->setPixmap(shrunk);
 }
 
@@ -854,13 +934,11 @@ void MainWindow::on_barcode_button_clicked()
 void MainWindow::on_priceChange_button_clicked()
 {
     const QString input = ui->code_inputBox->text();
-
     QList<QTableWidgetItem *> selectItems = ui->ticketview->selectedItems();
-    if(selectItems.size() != 1){
-
-    }else{
+    if(selectItems.size() == 1){
         int row = selectItems[0]->row();
-        ui->ticketview->item(row, 3)->setText(input);
+        QTableWidgetItem* newPrice = new QTableWidgetItem(input);
+        ui->ticketview->setItem(row, 3, newPrice);
         ui->code_inputBox->setText("");
         ui->ticketview->resizeColumnsToContents();
     }
@@ -870,11 +948,8 @@ void MainWindow::on_priceChange_button_clicked()
 void MainWindow::on_qtyChange_button_clicked()
 {
     const QString input = ui->code_inputBox->text();
-
     QList<QTableWidgetItem *> selectItems = ui->ticketview->selectedItems();
-    if(selectItems.size() != 1){
-
-    }else{
+    if(selectItems.size() == 1){
         int row = selectItems[0]->row();
         ui->ticketview->item(row, 2)->setText(input);
         ui->code_inputBox->setText("");
@@ -882,8 +957,8 @@ void MainWindow::on_qtyChange_button_clicked()
     }
 }
 
-void MainWindow::on_actionSettings_clicked(){
-
+void MainWindow::on_actionSettings_clicked()
+{
     if(!settingsWindow){
         settingsWindow = new settings(this);
         settingsWindow->setAttribute(Qt::WA_DeleteOnClose);
@@ -910,11 +985,13 @@ void MainWindow::on_code_inputBox_2_returnPressed()
 
     if(given.size() != 0){
         addtoTicket(given);
-
-        ui->code_inputBox->setText("");
+        ui->code_inputBox_2->setText("");
         ui->ticketview->resizeColumnsToContents();
     }
+}
 
-    ui->code_inputBox_2->setText("");
+void MainWindow::on_exportBarcodes_button_clicked()
+{
+    exportBarcodesList();
 }
 

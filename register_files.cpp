@@ -7,9 +7,6 @@
 
 const QString settingsFolder = QDir::homePath()+"/.register/";
 const QString ticketLocation = settingsFolder+"currentList.txt";
-const QString salesTaxLocation = settingsFolder+"tax.txt";
-const QString defaultTicketFolderLocation = settingsFolder+"defaultTicketsFolder.txt";
-const QString databaseLocation = settingsFolder+"databaselocation.txt";
 
 const QString persistenceFilePath = settingsFolder+"persistence";
 
@@ -54,7 +51,7 @@ void register_files::updatePersistenceFile(QString property, QString newValue){
             NewPropertyList.append(updatedProperty);
             found = true;
         }else{
-                NewPropertyList.append(updatedProperty);
+            NewPropertyList.append(line);
         }
     }
     if(!found){
@@ -82,114 +79,10 @@ QString register_files::return_ticketLocation(){
     return ticketLocation;
 }
 
-QString register_files::return_salesTaxLocation(){
-    return salesTaxLocation;
-}
-
-QString register_files::return_defaultTicketFolderLocation(){
-    return defaultTicketFolderLocation;
-}
-
-QString register_files::return_databaseLocation(){
-    return databaseLocation;
-}
-
-QString register_files::checkNotedTicketFolder(){
-
-    QFile note(defaultTicketFolderLocation);
-
-    if(!note.exists()){
-        qDebug() << "defaultTicketsFolder.txt not found";
-        return QDir::homePath()+"/.register/";
-    }
-
-    if(!note.open(QIODevice::ReadOnly | QIODevice::Text)){
-        qDebug() << "Can't REad?! defaultTicketsFolder.txt";
-        return QDir::homePath()+"/.register/";
-    }
-
-    QTextStream in(&note);
-    QString defaultTicketFolder = in.readLine();
-    note.close();
-    return defaultTicketFolder;
-
-}
-
-QString register_files::checkNotedDatabase(){
-    QFile note(databaseLocation);
-
-    if(!note.exists()){
-        qDebug() << "checkNotedDatabase.txt not found";
-        return QDir::homePath()+"/.register/upc_database.txt";
-    }
-
-    if(!note.open(QIODevice::ReadOnly | QIODevice::Text)){
-        qDebug() << "Can't REad?! checkNotedDatabase.txt";
-        return QDir::homePath()+"/.register/upc_database.txt";
-    }
-
-    QTextStream in(&note);
-    QString databasePath = in.readLine();
-    note.close();
-    return databasePath;
-}
-
-QString register_files::checkNotedTax(){
-
-    QFile note(salesTaxLocation);
-    if(!note.exists()){
-        qDebug() << "tax.txt not found";
-        return "";
-    }
-    if(!note.open(QIODevice::ReadOnly | QIODevice::Text)){
-        qDebug() << "coudln't load tax.txt";
-        return "";
-    }
-
-    QTextStream in(&note);
-    QString currentTax = in.readLine();
-    note.close();
-
-    return currentTax;
-}
-
-QString register_files::checkNotedTicket(){
-
-    QFile note(ticketLocation);
-    if(!note.exists()){
-        qDebug() << "currentList.txt not found";
-        return "";
-    }
-    if(!note.open(QIODevice::ReadOnly | QIODevice::Text)){
-        qDebug() << "coudln't load currentList.txt";
-        return "";
-    }
-
-    QTextStream in(&note);
-    QString currentTicketPath = in.readLine();
-    note.close();
-
-    return currentTicketPath;
-}
-
-void register_files::noteCurrentTicketPath(const QString &ticketPath, const QString &Destination){
-    QFile note(Destination);
-
-    if(!note.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        qDebug() << ": could not load note";
-        return;
-    }
-
-    QTextStream output(&note);
-    output << ticketPath;
-    note.close();
-    //qDebug() << "current ticket noted.";
-}
-
 void register_files::updateDatabaseDescription(QString upc, QString description)
 {
     QString updated_item;
-    QString database_filepath = checkNotedDatabase();
+    QString database_filepath = checkPersistenceFile("DATABASE_FILE_LOCATION");
     QFile database_file = database_filepath;
 
     if(!database_file.open(QIODevice::ReadOnly | QIODevice::Text)){
@@ -251,7 +144,7 @@ void register_files::updateDatabase(QString upc, QString description, QString pr
         updated_item = QString("%1 - %2 #)- price:%3").arg(upc, description, price);
     }
     qDebug()  << updated_item;
-    QString database_filepath = checkNotedDatabase();
+    QString database_filepath = checkPersistenceFile("DATABASE_FILE_LOCATION");
     QFile database_file = database_filepath;
     if(!database_file.open(QIODevice::ReadOnly | QIODevice::Text)){
         qDebug() << "updateDatabase: oops, couldn't open database.";

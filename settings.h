@@ -28,12 +28,10 @@ private slots:
 
     void on_databaseLocation_input_returnPressed();
 
+    void on_settings_close_button_clicked();
+
 private:
     Ui::settings *ui;
-
-    void update_ticketFolderLocation(QString newFolderPath);
-
-    void update_databaseLocation(QString newDatabaseLocation);
 };
 
 #endif // SETTINGS_H
