@@ -1,11 +1,11 @@
 #include "settings.h"
-#include "ui_settings.h"
 #include <QFile>
 #include <QFileDialog>
-#include <QTextStream>
 #include <QString>
-#include "register_files.h"
+#include <QTextStream>
 #include <QWidget>
+#include "register_files.h"
+#include "ui_settings.h"
 
 register_files cabinet;
 settings::settings(QWidget *parent)
@@ -19,7 +19,6 @@ settings::settings(QWidget *parent)
     ui->CurrentTicketPath_label->setText(cabinet.checkPersistenceFile("CURRENT_TICKET_LOCATION"));
     ui->salesTax_input->setText(cabinet.checkPersistenceFile("SALES_TAX_PERCENT"));
     connect(ui->settings_close_button, &QPushButton::clicked, this, &QWidget::close);
-
 }
 
 settings::~settings()
@@ -34,13 +33,11 @@ void settings::on_ticketFolderLocate_button_clicked()
     ui->ticketFolder_input->setText(ticketFolder);
 }
 
-
 void settings::on_ticketFolder_input_returnPressed()
 {
     QString input = ui->ticketFolder_input->text();
     cabinet.updatePersistenceFile("TICKET_FOLDER_LOCATION", input);
 }
-
 
 void settings::on_databaseLocate_button_clicked()
 {
@@ -49,14 +46,11 @@ void settings::on_databaseLocate_button_clicked()
     ui->databaseLocation_input->setText(databaseNewLocation);
 }
 
-
 void settings::on_salesTax_input_textChanged(const QString &arg1)
 {
     cabinet.updatePersistenceFile("SALES_TAX_PERCENT", arg1);
     qDebug() << "Tax updated";
 }
-
-
 
 void settings::on_databaseLocation_input_returnPressed()
 {
@@ -64,8 +58,4 @@ void settings::on_databaseLocation_input_returnPressed()
     cabinet.updatePersistenceFile("DATABASE_FILE_LOCATION", input);
 }
 
-void settings::on_settings_close_button_clicked()
-{
-
-}
-
+void settings::on_settings_close_button_clicked() {}

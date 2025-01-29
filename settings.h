@@ -16,7 +16,6 @@ public:
     explicit settings(QWidget *parent = nullptr);
     ~settings();
 
-
 private slots:
     void on_ticketFolderLocate_button_clicked();
 

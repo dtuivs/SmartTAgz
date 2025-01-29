@@ -1,8 +1,8 @@
-#include "mainwindow.h"
 #include <QApplication>
+#include <QIcon>
 #include <QLocale>
 #include <QTranslator>
-#include <QIcon>
+#include "mainwindow.h"
 
 int main(int argc, char *argv[])
 {
@@ -16,7 +16,7 @@ int main(int argc, char *argv[])
     icon.addFile(":/icons/icon_128x128.png", QSize(128, 128));
     icon.addFile(":/icons/icon_256x256.png", QSize(256, 256));
     icon.addFile("/icons/icon_512x512.png", QSize(512, 512));
-    icon.addFile("/icons/icon_1024x1024.png", QSize(1024,1024));
+    icon.addFile("/icons/icon_1024x1024.png", QSize(1024, 1024));
     a.setWindowIcon(icon);
 
     QTranslator translator;

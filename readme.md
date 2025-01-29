@@ -1,17 +1,15 @@
 SmartTAgz (Register App)
 ---
 
-So this was original built in iOS's Shortcuts. Decided to give it a shot with a desktop evironment but there is definitely some backward compatibility with how I wrote the iOS shortcuts. I'm Intending on compiling for the raspberry pi with the Touch diplay but that's another project. 
+So this was original built in iOS's Shortcuts. Decided to give it a shot with a desktop evironment but there is definitely some backward compatibility with how I wrote the iOS shortcuts. There Should be a version for MacOS and a version compiled for Raspberry Pi 64bit.  
 
 Still currently a work in progress...
 
 
 This Last update:
 
-- Hide Keypad option
-- new persistence file where all the other options will be migrated to for future expansion and scaling
-- shows full path for current ticket in settings now
-- App Icon should show up now
+- New Ticket Menu
+- ui fixes
 
 
-Jan 19th 2025
+Jan 29th 2025

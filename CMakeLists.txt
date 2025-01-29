@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(Register_App VERSION 0.5 LANGUAGES CXX)
+project(Register_App VERSION 0.6 LANGUAGES CXX)
 
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
@@ -43,6 +43,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         icons.qrc
         settings.h settings.cpp settings.ui
         register_files.h register_files.cpp
+        ticket_menu.h ticket_menu.cpp ticket_menu.ui
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET Register_App APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR

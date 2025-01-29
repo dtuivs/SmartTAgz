@@ -1,15 +1,19 @@
 #ifndef REGISTER_FILES_H
 #define REGISTER_FILES_H
+#include <QDebug>
 #include <QFile>
 #include <QFileDialog>
-#include <QTextStream>
 #include <QString>
-#include <QDebug>
+#include <QTextStream>
 
 class register_files
 {
 public:
     register_files();
+
+    QString generateTimestamp();
+
+    bool checkFileExistence(QString filePath);
 
     QString checkPersistenceFile(QString property);
 

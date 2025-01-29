@@ -1,18 +1,19 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include <QMainWindow>
 #include <QApplication>
-#include <QWidget>
-#include <QVBoxLayout>
-#include <QTableWidget>
-#include <QPushButton>
-#include <QFileDialog>
 #include <QFile>
-#include <QTextStream>
+#include <QFileDialog>
+#include <QMainWindow>
 #include <QMessageBox>
-#include "settings.h"
+#include <QPushButton>
+#include <QTableWidget>
+#include <QTextStream>
+#include <QVBoxLayout>
+#include <QWidget>
 #include "register_files.h"
+#include "settings.h"
+#include "ticket_menu.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -29,7 +30,6 @@ public:
     ~MainWindow();
 
 private slots:
-
 
     void on_one_button_clicked();
 
@@ -96,6 +96,8 @@ private:
 
     settings *settingsWindow = nullptr;
 
+    ticket_menu *ticketMenu = nullptr;
+
     void addtoTicket(QString lookup_code);
 
     void cellChanged(int row, int column);
@@ -109,8 +111,6 @@ private:
     bool code_input_check(const QString &input);
 
     QString processPrice(const QString &price);
-
-    QString generateTimestamp();
 
     QString processQty(const QString &quantity);
 
@@ -128,7 +128,10 @@ private:
 
     void on_actionSettings_clicked();
 
-    QString expandtoUPCA(const QString &upc);
+    void launchTicketsMenu();
 
+    void chooseTicketFile();
+
+    QString expandtoUPCA(const QString &upc);
 };
 #endif // MAINWINDOW_H
