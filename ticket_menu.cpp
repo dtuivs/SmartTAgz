@@ -20,6 +20,7 @@ ticket_menu::ticket_menu(QWidget *parent)
     ui->setupUi(this);
     setWindowTitle("Choose Ticket:");
     connect(ui->ticketChooser_view, &QTableWidget::cellDoubleClicked, this, &ticket_menu::setTicket);
+    ui->ticketChooser_view->setSortingEnabled(true);
     fetchTickets(ticketCabinet.checkPersistenceFile("TICKET_FOLDER_LOCATION"));
 }
 
@@ -36,13 +37,16 @@ void ticket_menu::fetchTickets(QString folder){
     }
     QStringList filters;
     filters << "*_List.txt";
-    QStringList txtFiles = ticketsFolder.entryList(filters, QDir::Files | QDir::NoDotAndDotDot);
+    QFileInfoList txtFiles = ticketsFolder.entryInfoList(filters, QDir::Files | QDir::NoDotAndDotDot, QDir::Time);
 
-    for(QString file : txtFiles){
+    for(QFileInfo file : txtFiles){
         int row = ui->ticketChooser_view->rowCount();
         ui->ticketChooser_view->insertRow(row);
-        QTableWidgetItem *fileLabel = new QTableWidgetItem(file);
+        QTableWidgetItem *fileLabel = new QTableWidgetItem(file.fileName());
+        QTableWidgetItem *filemodified = new QTableWidgetItem(file.lastModified().toString("yyyy-MM-dd hh:mm:ss"));
         ui->ticketChooser_view->setItem(row, 0, fileLabel);
+        ui->ticketChooser_view->setItem(row, 1, filemodified);
+        filemodified->setFlags(filemodified->flags() & ~Qt::ItemIsSelectable);
         fileLabel->setFlags(fileLabel->flags() & ~Qt::ItemIsEditable);
     }
     ui->ticketChooser_view->resizeColumnsToContents();

@@ -813,8 +813,10 @@ void MainWindow::chooseTicketFile()
                                                     mainCabinet.checkPersistenceFile(
                                                         "TICKET_FOLDER_LOCATION"),
                                                     nullptr);
-    mainCabinet.updatePersistenceFile("CURRENT_TICKET_LOCATION", filename);
-    loadFile(filename);
+    if(filename != nullptr){
+        mainCabinet.updatePersistenceFile("CURRENT_TICKET_LOCATION", filename);
+        loadFile(filename);
+    }
 }
 
 void MainWindow::on_save_button_clicked()

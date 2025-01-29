@@ -29,8 +29,10 @@ settings::~settings()
 void settings::on_ticketFolderLocate_button_clicked()
 {
     QString ticketFolder = QFileDialog::getExistingDirectory();
-    cabinet.updatePersistenceFile("TICKET_FOLDER_LOCATION", ticketFolder);
-    ui->ticketFolder_input->setText(ticketFolder);
+    if(ticketFolder != nullptr){
+        cabinet.updatePersistenceFile("TICKET_FOLDER_LOCATION", ticketFolder);
+        ui->ticketFolder_input->setText(ticketFolder);
+    }
 }
 
 void settings::on_ticketFolder_input_returnPressed()
@@ -42,8 +44,10 @@ void settings::on_ticketFolder_input_returnPressed()
 void settings::on_databaseLocate_button_clicked()
 {
     QString databaseNewLocation = QFileDialog::getOpenFileName();
-    cabinet.updatePersistenceFile("DATABASE_FILE_LOCATION", databaseNewLocation);
-    ui->databaseLocation_input->setText(databaseNewLocation);
+    if(databaseNewLocation != nullptr){
+        cabinet.updatePersistenceFile("DATABASE_FILE_LOCATION", databaseNewLocation);
+        ui->databaseLocation_input->setText(databaseNewLocation);
+    }
 }
 
 void settings::on_salesTax_input_textChanged(const QString &arg1)
