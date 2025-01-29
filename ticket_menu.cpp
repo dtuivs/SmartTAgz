@@ -51,9 +51,15 @@ void ticket_menu::fetchTickets(QString folder){
 void ticket_menu::setTicket(){
     QTableWidgetItem *selectedItem = ui->ticketChooser_view->currentItem();
     if(selectedItem){
-        QString fullTicketPath = ticketCabinet.checkPersistenceFile("TICKET_FOLDER_LOCATION") + selectedItem->text();
+        QString fullTicketPath = ticketCabinet.checkPersistenceFile("TICKET_FOLDER_LOCATION") + "/" +selectedItem->text();
         ticketCabinet.updatePersistenceFile("CURRENT_TICKET_LOCATION", fullTicketPath);
         emit selectedTicket(fullTicketPath);
         this->close();
     }
 }
+
+void ticket_menu::on_buttonBox_accepted()
+{
+    setTicket();
+}
+

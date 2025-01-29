@@ -18,6 +18,9 @@ public:
 signals:
     void selectedTicket(const QString &filename);
 
+private slots:
+    void on_buttonBox_accepted();
+
 private:
     Ui::ticket_menu *ui;
 

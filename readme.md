@@ -8,8 +8,8 @@ Still currently a work in progress...
 
 This Last update:
 
-- New Ticket Menu
+- New Tickets Menu to quickly choose from default ticket folder
+- Open ticket from filesystem moved to menu bar
 - ui fixes
-
 
 Jan 29th 2025
