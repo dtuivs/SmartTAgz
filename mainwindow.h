@@ -8,6 +8,7 @@
 #include <QMessageBox>
 #include <QPushButton>
 #include <QTableWidget>
+#include <QFileSystemWatcher>
 #include <QTextStream>
 #include <QVBoxLayout>
 #include <QWidget>
@@ -36,6 +37,10 @@ private slots:
     void on_load_button_clicked();
 
     void loadFile(QString filename);
+
+    void reload();
+
+    void fileHasChanged();
 
     void saveFile(QTableWidget *given_table, const QString &filePath);
 
@@ -124,6 +129,8 @@ private:
 
     void autosave();
 
+    QFileSystemWatcher *fileWatcher;
+
     void digit_clicked(QString digit);
 
     void on_actionSettings_clicked();
@@ -133,5 +140,9 @@ private:
     void chooseTicketFile();
 
     QString expandtoUPCA(const QString &upc);
+
+    QTimer *reloadTimer;
+
+    bool isWriting;
 };
 #endif // MAINWINDOW_H

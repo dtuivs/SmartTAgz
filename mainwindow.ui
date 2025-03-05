@@ -559,8 +559,11 @@
               <property name="focusPolicy">
                <enum>Qt::FocusPolicy::NoFocus</enum>
               </property>
+              <property name="editTriggers">
+               <set>QAbstractItemView::EditTrigger::AnyKeyPressed|QAbstractItemView::EditTrigger::DoubleClicked|QAbstractItemView::EditTrigger::EditKeyPressed|QAbstractItemView::EditTrigger::SelectedClicked</set>
+              </property>
               <property name="selectionMode">
-               <enum>QAbstractItemView::SelectionMode::NoSelection</enum>
+               <enum>QAbstractItemView::SelectionMode::MultiSelection</enum>
               </property>
               <property name="columnCount">
                <number>5</number>

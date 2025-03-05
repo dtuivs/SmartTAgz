@@ -1,3 +1,6 @@
 .DS_store
 Thumb.db
 build/
+CMakeLists.txt.user
+CMakeLists.txt.user*
+ios.toolchain.cmake
